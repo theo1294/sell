@@ -6,102 +6,97 @@ import uuid
 import random
 import string
 from colorama import Fore, Style, init
+from rich.panel import Panel
+from rich.console import Console
 
+# Initialize colorama
 init()
-
-BANNER = f"""
-{Fore.CYAN}====================================={Style.RESET_ALL}
-{Fore.BLUE}      FACEBOOK SHARE BOT v1.0        {Style.RESET_ALL}
-{Fore.CYAN}====================================={Style.RESET_ALL}
-"""
+console = Console()
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def display_banner(title):
+    console.print(Panel(
+        f"""
+[cyan]           ____  ____  _   _ _____ ____  _____ 
+[cyan]          / ___||  _ \| | | | ____|  _ \| ____|
+[cyan]          \___ \| |_) | |_| |  _| | |_) |  _|  
+[cyan]           ___) |  __/|  _  | |___|  _ <| |___ 
+[cyan]          |____/|_|   |_| |_|_____|_| \_\_____|
+        """,
+        title=f"[green]●[yellow] {title} [/]",
+        width=65,
+        style="bold bright_white",
+    ))
+
 def main_menu():
     while True:
         clear_screen()
-        print(BANNER)
-        print(f"{Fore.GREEN}1. Spam Share{Style.RESET_ALL}")
-        print(f"{Fore.YELLOW}2. Token Getter{Style.RESET_ALL}")
-        print(f"{Fore.RED}3. Exit{Style.RESET_ALL}")
-        choice = input(f"{Fore.CYAN}Select an option: {Style.RESET_ALL}")
+        display_banner("FACEBOOK TOOL")
+        console.print(Panel(
+            """
+[green]1. Spam Share
+[green]2. Token Getter
+[red]3. Exit
+            """,
+            width=65,
+            style="bold bright_white",
+        ))
+        choice = input("Select an option: ")
         
         if choice == "1":
             spam_share()
         elif choice == "2":
             token_getter()
         elif choice == "3":
-            print(f"{Fore.RED}Exiting...{Style.RESET_ALL}")
+            console.print("[red]Exiting...")
             break
         else:
-            print(f"{Fore.RED}Invalid choice! Try again.{Style.RESET_ALL}")
+            console.print("[red]Invalid choice! Try again.")
             time.sleep(2)
 
 def spam_share():
     clear_screen()
-    print(BANNER)
+    display_banner("SPAM SHARE")
     access_token = input("Enter your access token: ")
     share_url = input("Enter your post link: ")
     share_count = int(input("Enter Share Count: "))
-    time_interval = 1
-    delete_after = 60 * 60
+    time_interval = 0.5
     shared_count = 0
 
     def share_post():
         nonlocal shared_count
         url = f"https://graph.facebook.com/me/feed?access_token={access_token}"
-        data = {
-            "link": share_url,
-            "privacy": {"value": "SELF"},
-            "no_story": "true"
-        }
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+        data = {"link": share_url, "privacy": {"value": "SELF"}, "no_story": "true"}
+        headers = {"User-Agent": "Mozilla/5.0"}
         
         try:
             response = requests.post(url, json=data, headers=headers)
             response_data = response.json()
             post_id = response_data.get("id", "Unknown")
-            
             shared_count += 1
-            print(f"{Fore.GREEN}Post shared: {shared_count}{Style.RESET_ALL}")
-            print(f"{Fore.CYAN}Post ID: {post_id}{Style.RESET_ALL}")
-            
-            if shared_count == share_count and post_id != "Unknown":
-                time.sleep(delete_after)
-                delete_post(post_id)
+            console.print(f"[green]Post shared: {shared_count}")
+            console.print(f"[cyan]Post ID: {post_id}")
         except requests.exceptions.RequestException as e:
-            print(f"{Fore.RED}Failed to share post: {e}{Style.RESET_ALL}")
-
-    def delete_post(post_id):
-        url = f"https://graph.facebook.com/{post_id}?access_token={access_token}"
-        try:
-            response = requests.delete(url)
-            if response.status_code == 200:
-                print(f"{Fore.RED}Post deleted: {post_id}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.RED}Failed to delete post: {response.json()}{Style.RESET_ALL}")
-        except requests.exceptions.RequestException as e:
-            print(f"{Fore.RED}Failed to delete post: {e}{Style.RESET_ALL}")
+            console.print(f"[red]Failed to share post: {e}")
 
     for _ in range(share_count):
         share_post()
         time.sleep(time_interval)
-    print(f"{Fore.GREEN}Finished sharing posts.{Style.RESET_ALL}")
-    input("Press Enter to return to the main menu...")
+    console.print("[green]Finished sharing posts.")
+    input("\n[bold yellow]Press Enter to return to the main menu...[/bold yellow]")
 
 def token_getter():
     clear_screen()
-    print(BANNER)
+    display_banner("TOKEN GETTER")
     email = input("Enter your email: ")
     password = input("Enter your password: ")
     twofactor_code = input("Enter your 2-factor authentication code (Enter '0' if not applicable): ")
 
     result = make_request(email, password, twofactor_code)
-    print(result)
-    input("Press Enter to return to the main menu...")
+    console.print(f"\n[bold green]Access Token: {result}[/bold green]")
+    input("\n[bold yellow]Press Enter to return to the main menu...[/bold yellow]")
 
 def make_request(email, password, twofactor_code):
     deviceID = str(uuid.uuid4())
@@ -124,9 +119,11 @@ def make_request(email, password, twofactor_code):
     
     try:
         response = requests.post(url, data=form, headers=headers)
-        return response.json()
+        response_json = response.json()
+        return response_json.get("access_token", "Failed to retrieve access token")
+
     except Exception as e:
-        return { 'status': False, 'message': 'Please check your account and password again!' }
+        return "Error: Please check your account and password again!"
 
 if __name__ == '__main__':
     main_menu()
